@@ -1319,6 +1319,9 @@ class DiffusionWrapper(pl.LightningModule):
         if self.conditioning_key is None:
             out = self.diffusion_model(x, t)
         elif self.conditioning_key == 'concat':
+            print(f"[DEBUG DiffusionWrapper.forward] concat mode: x.shape={x.shape}")
+            for idx, cc in enumerate(c_concat):
+                print(f"[DEBUG DiffusionWrapper.forward] c_concat[{idx}].shape={cc.shape}")
             xc = torch.cat([x] + c_concat, dim=1)
             out = self.diffusion_model(xc, t)
         elif self.conditioning_key == 'crossattn':
@@ -1334,6 +1337,13 @@ class DiffusionWrapper(pl.LightningModule):
             else:
                 out = self.diffusion_model(x, t, context=cc)
         elif self.conditioning_key == 'hybrid':
+            print(f"[DEBUG DiffusionWrapper.forward] hybrid mode: x.shape={x.shape}, len(c_concat)={len(c_concat) if c_concat is not None else None}")
+            if c_concat is not None:
+                for idx, cc in enumerate(c_concat):
+                    print(f"[DEBUG DiffusionWrapper.forward] c_concat[{idx}].shape={cc.shape}")
+            if c_crossattn is not None:
+                for idx, cc in enumerate(c_crossattn):
+                    print(f"[DEBUG DiffusionWrapper.forward] c_crossattn[{idx}].shape={cc.shape}")
             xc = torch.cat([x] + c_concat, dim=1)
             cc = torch.cat(c_crossattn, 1)
             out = self.diffusion_model(xc, t, context=cc)

@@ -66,6 +66,7 @@ def main(args):
             for i, (image, tgt_image) in enumerate(dataloader):
                 tgt_image = tgt_image.to(device)
                 B = image.shape[0]
+                print(f"Batch {i}: B={B}")
                 
                 face_parsing = FaceParsing()
                 pred = face_parsing(image)
@@ -98,7 +99,7 @@ def main(args):
 
                 batch = {
                     "image": image.to(device),
-                    "txt": batch_size * [txt],
+                    "txt": B * [txt],
                     "mask": mask.to(device),
                     "masked_image": masked_image.to(device),
                 }
@@ -108,31 +109,30 @@ def main(args):
                 for ck in model.concat_keys:
                     cc = batch[ck].float()
                     if ck != model.masked_image_key:
-                        bchw = [batch_size, 4, h // 8, w // 8]
+                        bchw = [B, 4, h // 8, w // 8]
                         cc = torch.nn.functional.interpolate(cc, size=bchw[-2:])
                     else:
                         cc = model.get_first_stage_encoding(model.encode_first_stage(cc))
                     c_cat.append(cc)
-                c_cat = torch.cat(c_cat, dim=1)
-
                 # cond
-                cond = {"c_concat": [c_cat], "c_crossattn": [c]}
+                cond = {"c_concat": c_cat, "c_crossattn": [c]}
 
                 # uncond cond
-                uc_cross = model.get_unconditional_conditioning(batch_size, "")
-                uc_full = {"c_concat": [c_cat], "c_crossattn": [uc_cross]}
+                #uc_cross = model.get_unconditional_conditioning(batch_size, "")
+                uc_cross = model.get_unconditional_conditioning(B, "")
+                uc_full = {"c_concat": c_cat, "c_crossattn": [uc_cross]}
 
                 shape = [model.channels, h // 8, w // 8]
                 
                 # start code
                 _t = args.t  # 0-999
                 z = model.get_first_stage_encoding(model.encode_first_stage(image.to(device)))
-                t = torch.tensor([_t] * batch_size, device=device)
+                t = torch.tensor([_t] * B, device=device)
                 z_t = model.q_sample(x_start=z, t=t)
 
                 samples_cfg, intermediates = sampler.sample(
                     ddim_steps,
-                    batch_size,
+                    B,
                     shape,
                     cond,
                     verbose=False,
@@ -158,10 +158,10 @@ def main(args):
 
                 os.makedirs(os.path.join(args.save, 'img'), exist_ok=True)
                 os.makedirs(os.path.join(args.save, 'msk'), exist_ok=True)
-                print(i, batch_size)
+                print(i, B)
                 for x in range(result.shape[0]):
-                    save_image((result[x] + 1) / 2, os.path.join(args.save, 'img', f'{i * batch_size + x}.png'))
-                    save_image((masked_image[x] + 1) / 2, os.path.join(args.save, 'msk', f'{i * batch_size + x}_m.png'))
+                    save_image((result[x] + 1) / 2, os.path.join(args.save, 'img', f'{i * B + x}.png'))
+                    save_image((masked_image[x] + 1) / 2, os.path.join(args.save, 'msk', f'{i * B + x}_m.png'))
 
                 # save_image((x_inter + 1) / 2, f'res/{i}_inter.png')
                 

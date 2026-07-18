@@ -189,19 +189,27 @@ class DDIMSampler(object):
         b, *_, device = *x.shape, x.device
 
         if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
+            print(f"[DEBUG p_sample_ddim] NO CFG: x.shape={x.shape}, c keys={list(c.keys()) if isinstance(c, dict) else type(c)}")
             model_output = self.model.apply_model(x, t, c)
         else:
             x_in = torch.cat([x] * 2)
             t_in = torch.cat([t] * 2)
+            print(f"[DEBUG p_sample_ddim] CFG: x.shape={x.shape}, x_in.shape={x_in.shape}")
+            print(f"[DEBUG p_sample_ddim] CFG: c keys={list(c.keys()) if isinstance(c, dict) else 'not dict'}")
+            print(f"[DEBUG p_sample_ddim] CFG: unconditional_conditioning keys={list(unconditional_conditioning.keys()) if isinstance(unconditional_conditioning, dict) else 'not dict'}")
             if isinstance(c, dict):
                 assert isinstance(unconditional_conditioning, dict)
                 c_in = dict()
                 for k in c:
                     if isinstance(c[k], list):
+                        print(f"[DEBUG p_sample_ddim] CFG processing key={k}, len(c[k])={len(c[k])}, len(uc[k])={len(unconditional_conditioning[k])}")
+                        for idx in range(len(c[k])):
+                            print(f"[DEBUG p_sample_ddim] CFG {k}[{idx}]: cond.shape={c[k][idx].shape}, uc.shape={unconditional_conditioning[k][idx].shape}, cond.type={type(c[k][idx])}, uc.type={type(unconditional_conditioning[k][idx])}")
                         c_in[k] = [torch.cat([
                             unconditional_conditioning[k][i],
                             c[k][i]]) for i in range(len(c[k]))]
                     else:
+                        print(f"[DEBUG p_sample_ddim] CFG non-list key={k}: cond.shape={c[k].shape}, uc.shape={unconditional_conditioning[k].shape}")
                         c_in[k] = torch.cat([
                                 unconditional_conditioning[k],
                                 c[k]])

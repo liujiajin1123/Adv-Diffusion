@@ -25,6 +25,8 @@ class base_dataset(Dataset):
         tgt_img_path = os.path.join(self.dir, 'target', self.tgt_img_names[tgt_index])
         tgt_img = Image.open(tgt_img_path).convert('RGB')
         
+        print(f"[dataset] index={index}: src={self.img_names[index]} -> tgt={self.tgt_img_names[tgt_index]}")
+
         if self.transform:
             img = self.transform(img)
             tgt_img = self.transform(tgt_img)

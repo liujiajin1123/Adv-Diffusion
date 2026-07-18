@@ -8,9 +8,9 @@ import torch.nn as nn
 from torch.nn import functional as F
 import torch
 
-from inplace_abn import InPlaceABN  # replace is ok!
+from torch.nn import BatchNorm2d
 import functools
-BatchNorm2d = functools.partial(InPlaceABN, activation='identity')
+# BatchNorm2d is imported from torch.nn
 
 def conv3x3(in_planes, out_planes, stride=1):
     "3x3 convolution with padding"
